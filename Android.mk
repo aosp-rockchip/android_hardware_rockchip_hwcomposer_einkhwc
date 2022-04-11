@@ -48,15 +48,16 @@ LOCAL_SHARED_LIBRARIES := \
 	libutils \
     librga \
     libjpeg \
-    libpng
+    libpng \
+    libskia_shared
     
 LOCAL_STATIC_LIBRARIES := \
 	libtinyxml2 \
-	libskia
-
+    libwebp-encode \
+    libwebp-decode
 
 LOCAL_C_INCLUDES := \
-        hardware/rockchip/libgralloc \
+    hardware/rockchip/libgralloc \
 	external/tinyxml2 \
 	external/libdrm \
 	external/libdrm/include/drm \
@@ -64,7 +65,7 @@ LOCAL_C_INCLUDES := \
 	system/core \
 	system/core/libsync/include \
 	hardware/rockchip/librga \
-        frameworks/native/include \
+    frameworks/native/include \
 
 LOCAL_SRC_FILES := \
 	autolock.cpp \
