@@ -46,13 +46,13 @@ LOCAL_SHARED_LIBRARIES := \
 	libsync_vendor \
 	libui \
 	libutils \
-        librga \
-        libjpeg \
-        libpng \
-        libskia
-
+    librga \
+    libjpeg \
+    libpng
+    
 LOCAL_STATIC_LIBRARIES := \
-	libtinyxml2
+	libtinyxml2 \
+	libskia
 
 
 LOCAL_C_INCLUDES := \
