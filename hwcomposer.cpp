@@ -1525,7 +1525,7 @@ void drawLogoPic(const char src_path[], void* buf, int width, int height)
     if (height > bitmap.height())
 		y = (height - bitmap.height()) / 2;
 
-    canvas.drawBitmap(bitmap, x, y, NULL);
+    //canvas.drawBitmap(bitmap, x, y, NULL);
 }
 
 int Rgb888ToGray16ByRga(char *dst_buf,int *src_buf,int  fb_height, int fb_width, int vir_width) {
