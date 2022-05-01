@@ -75,27 +75,31 @@ namespace android {
  * And if you want to add new refresh modes, please appended to the tail.
  */
 enum panel_refresh_mode {
-	EPD_NULL				= -1,
+	EPD_NULL			= -1,
 	EPD_AUTO			= 0,
-	EPD_OVERLAY			= 1,
+	EPD_OVERLAY		= 1,
 	EPD_FULL_GC16		= 2,
 	EPD_FULL_GL16		= 3,
 	EPD_FULL_GLR16		= 4,
 	EPD_FULL_GLD16		= 5,
-	EPD_FULL_GCC16		= 6,
+	EPD_FULL_GCC16	= 6,
 	EPD_PART_GC16		= 7,
 	EPD_PART_GL16		= 8,
-	EPD_PART_GLR16		= 9,
-	EPD_PART_GLD16		= 10,
-	EPD_PART_GCC16		= 11,
+	EPD_PART_GLR16	= 9,
+	EPD_PART_GLD16	= 10,
+	EPD_PART_GCC16	= 11,
 	EPD_A2				= 12,
-	EPD_DU				= 13,
-	EPD_RESET			= 14,
-	EPD_SUSPEND			= 15,
-	EPD_RESUME			= 16,
-	EPD_POWER_OFF		= 17,
-	EPD_PART_EINK		= 18,
-	EPD_FULL_EINK		= 19,
+	EPD_A2_DITHER        = 13,
+	EPD_DU				= 14,
+	EPD_DU4			= 15,
+	EPD_A2_ENTER		= 16,
+	EPD_RESET			= 17,
+	EPD_SUSPEND		= 18,
+	EPD_RESUME		= 19,
+	EPD_POWER_OFF	= 20,
+	EPD_FORCE_FULL	= 21,
+	EPD_AUTO_DU		= 22,
+	EPD_AUTO_DU4		= 23,
 };
 
 /*
@@ -113,6 +117,8 @@ struct ebc_buf_info_t {
 	int win_y2;
 	int width_mm;
 	int height_mm;
+	int needpic; //16 or 32
+	char tid_name[16];
 };
 
 struct win_coordinate{
@@ -158,22 +164,24 @@ class EinkCompositorWorker : public Worker {
   int FinishComposition(int timeline);
   int Rgba888ToGray256ByRga(DrmRgaBuffer &rgaBuffer,const buffer_handle_t          &fb_handle);
   int Rgba8888ClipRgba(DrmRgaBuffer &rgaBuffer,const buffer_handle_t          &fb_handle);
-  int Rgba888ToGray16ByRga(int *output_buffer,const buffer_handle_t          &fb_handle);
+  int Rgba888ToGray16ByRga(int *output_buffer,const buffer_handle_t          &fb_handle, int epd_mode);
   int RgaClipGrayRect(DrmRgaBuffer &rgaBuffer,const buffer_handle_t &fb_handle);
   int ConvertToColorEink1(const buffer_handle_t &fb_handle);
   int ConvertToColorEink2(const buffer_handle_t &fb_handle);
-  int ConvertToY8(const buffer_handle_t &fb_handle);
-  int ConvertToY4Dither(const buffer_handle_t &fb_handle);
+  int InToOrOutY8Regal(const buffer_handle_t &fb_handle);
+  int ConvertToY8Regal(const buffer_handle_t &fb_handle);
+  int ConvertToY4Dither(const buffer_handle_t &fb_handle, int epd_mode);
   int ConvertToY1Dither(const buffer_handle_t &fb_handle);
   int ColorCommit(int epd_mode);
   int EinkCommit(int epd_mode);
   int Y4Commit(int epd_mode);
-  int A2Commit();
+  int A2Commit(int epd_mode);
   int update_fullmode_num();
   int DumpEinkSurface(int *buffer);
   int PostEink(int *buffer, Rect rect, int mode);
   int PostEinkY8(int *buffer, Rect rect, int mode);
-  int SetEinkMode(const buffer_handle_t &fb_handle);
+  int SetEinkMode(EinkComposition *composition);
+  int SetColorEinkMode(EinkComposition *composition);
   void Compose(std::unique_ptr<EinkComposition> composition);
 
   bool isSupportRkRga() {
@@ -195,19 +203,19 @@ class EinkCompositorWorker : public Worker {
 
   int ebc_fd = -1;
   void *ebc_buffer_base = NULL;
+  int waveform_fd = -1;
+  void *waveform_base = NULL;
   struct ebc_buf_info_t ebc_buf_info;
   struct ebc_buf_info_t commit_buf_info;
-
   int gLastEpdMode = EPD_PART_GC16;
-  int gCurrentEpdMode = EPD_PART_GC16;
-  int gResetEpdMode = EPD_PART_GC16;
+
   Region gLastA2Region;
   Region gSavedUpdateRegion;
 
   int rgaBuffer_index = 0;
   DrmRgaBuffer rgaBuffers[MaxRgaBuffers];
   int *gray16_buffer = NULL;
-  int *rgba_new_buffer = NULL;
+  int *gray256_old_buffer = NULL;
   int *gray256_new_buffer = NULL;
   char* rga_output_addr = NULL;
   bool rgba_to_y4_by_rga = false;

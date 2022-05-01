@@ -109,7 +109,7 @@
 namespace android {
 #ifndef ANDROID_EINK_COMPOSITOR_WORKER_H_
 
-#define EINK_FB_SIZE		0x400000 /* 4M */
+#define EINK_FB_SIZE        0x400000 /* 4M */
 
 /*
  * IMPORTANT: Those values is corresponding to android hardware program,
@@ -117,51 +117,57 @@ namespace android {
  * And if you want to add new refresh modes, please appended to the tail.
  */
 enum panel_refresh_mode {
-	EPD_NULL			= -1;
-	EPD_AUTO			= 0,
-	EPD_OVERLAY		= 1,
-	EPD_FULL_GC16		= 2,
-	EPD_FULL_GL16		= 3,
-	EPD_FULL_GLR16		= 4,
-	EPD_FULL_GLD16		= 5,
-	EPD_FULL_GCC16		= 6,
-	EPD_PART_GC16		= 7,
-	EPD_PART_GL16		= 8,
-	EPD_PART_GLR16		= 9,
-	EPD_PART_GLD16		= 10,
-	EPD_PART_GCC16		= 11,
-	EPD_A2				= 12,
-	EPD_DU				= 13,
-	EPD_RESET			= 14,
-	EPD_SUSPEND		= 15,
-	EPD_RESUME			= 16,
-	EPD_POWER_OFF		= 17,
-	EPD_PART_EINK		= 18,
-	EPD_FULL_EINK		= 19,
+    EPD_NULL            = -1;
+    EPD_AUTO            = 0,
+    EPD_OVERLAY        = 1,
+    EPD_FULL_GC16        = 2,
+    EPD_FULL_GL16        = 3,
+    EPD_FULL_GLR16        = 4,
+    EPD_FULL_GLD16        = 5,
+    EPD_FULL_GCC16        = 6,
+    EPD_PART_GC16        = 7,
+    EPD_PART_GL16        = 8,
+    EPD_PART_GLR16        = 9,
+    EPD_PART_GLD16        = 10,
+    EPD_PART_GCC16        = 11,
+    EPD_A2                = 12,
+    EPD_A2_DITHER  = 13,
+    EPD_DU                = 14,
+    EPD_DU4               = 15,
+    EPD_A2_ENTER          = 16,
+    EPD_RESET            = 17,
+    EPD_SUSPEND        = 18,
+    EPD_RESUME            = 19,
+    EPD_POWER_OFF        = 20,
+    EPD_FORCE_FULL       = 21,
+    EPD_AUTO_DU          = 22,
+    EPD_AUTO_DU4           = 23,
 };
 
 /*
  * IMPORTANT: android hardware use struct, so *FORBID* to changes this, unless you know what you're doing.
  */
 struct ebc_buf_info {
-	int offset;
-	int epd_mode;
-	int height;
-	int width;
-	int panel_color;
-	int win_x1;
-	int win_y1;
-	int win_x2;
-	int win_y2;
-	int width_mm;
-	int height_mm;
+    int offset;
+    int epd_mode;
+    int height;
+    int width;
+    int panel_color;
+    int win_x1;
+    int win_y1;
+    int win_x2;
+    int win_y2;
+    int width_mm;
+    int height_mm;
+    int needpic; //16 or 32
+    char tid_name[16];
 };
 
 struct win_coordinate{
-	int x1;
-	int x2;
-	int y1;
-	int y2;
+    int x1;
+    int x2;
+    int y1;
+    int y2;
 };
 
 
@@ -169,12 +175,12 @@ struct win_coordinate{
 /*
  * ebc system ioctl command
  */
-#define EBC_GET_BUFFER			(0x7000)
-#define EBC_SEND_BUFFER			(0x7001)
-#define EBC_GET_BUFFER_INFO		(0x7002)
-#define EBC_SET_FULL_MODE_NUM	(0x7003)
-#define EBC_ENABLE_OVERLAY		(0x7004)
-#define EBC_DISABLE_OVERLAY		(0x7005)
+#define EBC_GET_BUFFER            (0x7000)
+#define EBC_SEND_BUFFER            (0x7001)
+#define EBC_GET_BUFFER_INFO        (0x7002)
+#define EBC_SET_FULL_MODE_NUM    (0x7003)
+#define EBC_ENABLE_OVERLAY        (0x7004)
+#define EBC_DISABLE_OVERLAY        (0x7005)
 
 #endif
 
@@ -243,7 +249,7 @@ static int DEFAULT_GRAY_BLACK_COUNT = 16;
 static int last_gamma_level = 0;
 static int DEFAULT_GAMMA_LEVEL = 14;
 
-/* add by xy
+/*
 处理gamma table灰阶映射表参数，根据像素点的rgb值转换成0-255值，然后对应gamma table对应灰阶，初始值是16个灰阶平均分配（16*16），
 0x00表示纯黑，0x0f表示纯白，总共16个灰阶值；
 */
@@ -635,12 +641,12 @@ int gray256_to_gray16(char *gray256_addr,int *gray16_buffer,int h,int w,int vir_
       for(int j = 0; j< w / 2;j++){
           src_data = *gray256_addr;
           g0 =  gama[static_cast<int>(src_data)];
-		      //g0 =  (src_data&0xf0)>>4;
+              //g0 =  (src_data&0xf0)>>4;
           gray256_addr++;
 
           src_data = *gray256_addr;
           g3 =  gama[static_cast<int>(src_data)] << 4;
-		      //g3 =  src_data&0xf0;
+              //g3 =  src_data&0xf0;
           gray256_addr++;
           *temp_dst = g0|g3;
           temp_dst++;
@@ -650,12 +656,10 @@ int gray256_to_gray16(char *gray256_addr,int *gray16_buffer,int h,int w,int vir_
   return 0;
 }
 
-int logo_gray256_to_gray16(char *gray256_addr,int *gray16_buffer,int h,int w,int vir_w){
-  ATRACE_CALL();
-
+int logo_gray256_to_gray16(char *gray256_addr,char *gray16_buffer, int h,int w,int vir_w)
+{
   char src_data;
   char  g0,g3;
-  char *temp_dst = (char *)gray16_buffer;
 
   for(int i = 0; i < h;i++){
       for(int j = 0; j< w / 2;j++){
@@ -666,10 +670,9 @@ int logo_gray256_to_gray16(char *gray256_addr,int *gray16_buffer,int h,int w,int
           src_data = *gray256_addr;
           g3 =  src_data&0xf0;
           gray256_addr++;
-          *temp_dst = g0|g3;
-          temp_dst++;
+          *gray16_buffer = g0|g3;
+          gray16_buffer++;
       }
-      //gray256_addr += (vir_w - w);
   }
   return 0;
 }
@@ -887,6 +890,7 @@ int gray256_to_gray2_dither(char *gray256_addr,char *gray2_buffer,int  panel_h, 
   return 0;
 }
 
+/*for eink color panel, rgb888*/
 void Rgb888_to_color_eink(char *dst,int *src,int  fb_height, int fb_width,int vir_width)
 {
     int src_data;
@@ -902,14 +906,7 @@ void Rgb888_to_color_eink(char *dst,int *src,int  fb_height, int fb_width,int vi
     char *temp_dst1;
     int dst_dep;
 
-    int new_value = 0;
-    char value[PROPERTY_VALUE_MAX];
-    property_get("debug.eink.rgb", value, "0");
-    new_value = atoi(value);
-    //ALOGD("lyx: fb_height = %d, fb_width = %d, vir_width = %d\n", fb_height, fb_width, vir_width);
-
     dst_dep = fb_width % 6;
-    //ALOGD("lyx: dst_dep = %d\n", dst_dep);
     for (i = 0; i < fb_height; i++) {
         temp_src = src + (i * fb_width);
         temp_dst = dst + (i * 3 * vir_width / 2);
@@ -938,22 +935,6 @@ void Rgb888_to_color_eink(char *dst,int *src,int  fb_height, int fb_width,int vi
             r6 =  (src_data&0xf0)>>4;
             g6 = (src_data&0xf000)>>12;
             b6 = (src_data&0xf00000)>>20;
-
-            if (new_value == 1) {//red
-                r1 = r2 = r3 = r4 = r5 = r6 =  0xf;
-                g1 = g2 = g3 = g4 = g5 = g6 = 0;
-                b1 = b2 = b3 = b4 = b5 = b6 = 0;
-            }
-            else if (new_value == 2) {//green
-                r1 = r2 = r3 = r4 = r5 = r6 =  0;
-                g1 = g2 = g3 = g4 = g5 = g6 = 0xf;
-                b1 = b2 = b3 = b4 = b5 = b6 = 0;
-            }
-            else if (new_value == 3) {//blue
-                r1 = r2 = r3 = r4 = r5 = r6 =  0;
-                g1 = g2 = g3 = g4 = g5 = g6 = 0;
-                b1 = b2 = b3 = b4 = b5 = b6 = 0xf;
-            }
 
             temp_dst1 = temp_dst + (j * 9);
             *temp_dst1++ = g1 | (g1<<4);
@@ -1068,6 +1049,285 @@ void Rgb888_to_color_eink(char *dst,int *src,int  fb_height, int fb_width,int vi
     }
 }
 
+#if 0
+//算法1
+//彩色分辨率是原始黑白分辨率的1/4，w = W/2; h = H/2;
+#if 1 //优化算法，针对算法1
+#pragma pack(push,1)
+typedef union {
+    struct {
+        uint16_t pad0 : 1;  // bit0
+        uint16_t b    : 4;  // bit1-4
+        uint16_t pad1 : 2;  // bit5-6
+        uint16_t g    : 4;  // bit7-10
+        uint16_t pad2 : 1;  // bit11
+        uint16_t r    : 4;  // bit12-15
+    };
+    uint16_t value;
+} rgb565_rgb444;
+
+typedef union {
+    struct {
+        uint32_t pad0 : 4;  // bit0-3
+        uint32_t r    : 4;  // bit4-7
+        uint32_t pad1 : 4;  // bit8-11
+        uint32_t g    : 4;  // bit12-15
+        uint32_t pad2 : 4;  // bit16-19
+        uint32_t b    : 4;  // bit20-23
+        uint32_t pad3 : 4;  // bit24-31
+    };
+    uint32_t value;
+} rgb888_rgb444;
+
+struct rgb565_2pixel {
+    rgb565_rgb444 p1;
+    rgb565_rgb444 p2;
+};
+
+struct rgb888_2pixel {
+    rgb888_rgb444 p1;
+    rgb888_rgb444 p2;
+};
+#pragma pack(pop)
+
+#define GB_BR(src_) ( \
+              ((src_)->p1.g<<4 | (src_)->p1.b) | \
+              ((src_)->p2.b<<4 | (src_)->p2.r) << 8 \
+)
+
+#define BR_RG(src_) ( \
+             ((src_)->p1.b<<4 | (src_)->p1.r) | \
+             ((src_)->p2.r<<4 | (src_)->p2.g) << 8 \
+)
+
+#define RG_GB(src_) ( \
+             ((src_)->p1.r<<4 | (src_)->p1.g) | \
+             ((src_)->p2.g<<4 | (src_)->p2.b) << 8 \
+)
+
+#define BR_RG_GB_BR(src_) (BR_RG(src_)|(GB_BR(src_+1) << 16))
+#define RG_GB_BR_RG(src_) (RG_GB(src_)|(BR_RG(src_+1) << 16))
+#define GB_BR_RG_GB(src_) (GB_BR(src_)|(RG_GB(src_+1) << 16))
+
+#define GB_BR__BR_RG(src_, dst_A, dst_B) do { \
+            *((uint16_t*)dst_A) = GB_BR(src_); \
+            dst_A += 2; \
+            *((uint16_t*)dst_B) = BR_RG(src_); \
+            dst_B += 2; \
+            src_ += 1; \
+} while(0)
+
+#define BR_RG__RG_GB(src_, dst_A, dst_B) do { \
+            *((uint16_t*)dst_A) = BR_RG(src_); \
+            dst_A += 2; \
+            *((uint16_t*)dst_B) = RG_GB(src_); \
+            dst_B += 2; \
+            src_ += 1; \
+} while(0)
+
+#define RG_GB__GB_BR(src_, dst_A, dst_B) do { \
+            *((uint16_t*)dst_A) = RG_GB(src_); \
+            dst_A += 2; \
+            *((uint16_t*)dst_B) = GB_BR(src_); \
+            dst_B += 2; \
+            src_ += 1; \
+} while(0)
+
+#define BR_RG_GB_BR__RG_GB_BR_RG(src_, dst_A, dst_B) do { \
+            *((uint32_t*)dst_A) = BR_RG_GB_BR(src_); \
+            dst_A += 4; \
+            *((uint32_t*)dst_B) = RG_GB_BR_RG(src_); \
+            dst_B += 4; \
+            src_ += 2; \
+} while(0)
+
+#define RG_GB_BR_RG__GB_BR_RG_GB(src_, dst_A, dst_B) do { \
+            *((uint32_t*)dst_A) = RG_GB_BR_RG(src_); \
+            dst_A += 4; \
+            *((uint32_t*)dst_B) = GB_BR_RG_GB(src_); \
+            dst_B += 4; \
+            src_ += 2; \
+} while(0)
+
+#define GB_BR_RG_GB__BR_RG_GB_BR(src_, dst_A, dst_B) do { \
+            *((uint32_t*)dst_A) = GB_BR_RG_GB(src_); \
+            dst_A += 4; \
+            *((uint32_t*)dst_B) = BR_RG_GB_BR(src_); \
+            dst_B += 4; \
+            src_ += 2; \
+} while(0)
+
+#define PROCESS_EINK_ROW0() do { \
+    for (int __i = 0; __i < w_div12; __i++) \
+    { \
+        BR_RG_GB_BR__RG_GB_BR_RG(src_, dst_A, dst_B); \
+        RG_GB_BR_RG__GB_BR_RG_GB(src_, dst_A, dst_B); \
+        GB_BR_RG_GB__BR_RG_GB_BR(src_, dst_A, dst_B); \
+    } \
+    /* 处理不足12个像素的情况 */ \
+    switch (w_div12_div4) { \
+    case 2: \
+        BR_RG_GB_BR__RG_GB_BR_RG(src_, dst_A, dst_B); \
+        RG_GB_BR_RG__GB_BR_RG_GB(src_, dst_A, dst_B); \
+        /* 进一步处理不足4个像素的情况, 不考虑奇数点的情况 */ \
+        if (w_div12_div4_remind) GB_BR__BR_RG(src_, dst_A, dst_B); \
+        break; \
+    case 1: \
+        BR_RG_GB_BR__RG_GB_BR_RG(src_, dst_A, dst_B); \
+        /* 进一步处理不足4个像素的情况, 不考虑奇数点的情况 */ \
+        if (w_div12_div4_remind) RG_GB__GB_BR(src_, dst_A, dst_B); \
+        break; \
+    } \
+} while(0)
+
+#define PROCESS_EINK_ROW1() do { \
+    for (int i = 0; i < w_div12; i++) { \
+        GB_BR_RG_GB__BR_RG_GB_BR(src_, dst_A, dst_B); \
+        BR_RG_GB_BR__RG_GB_BR_RG(src_, dst_A, dst_B); \
+        RG_GB_BR_RG__GB_BR_RG_GB(src_, dst_A, dst_B); \
+    } \
+    /* 处理不足12个像素的情况 */ \
+    switch (w_div12_div4) { \
+    case 2: \
+        GB_BR_RG_GB__BR_RG_GB_BR(src_, dst_A, dst_B); \
+        BR_RG_GB_BR__RG_GB_BR_RG(src_, dst_A, dst_B); \
+        /* 进一步处理不足4个像素的情况, 不考虑奇数点的情况 */ \
+        if (w_div12_div4_remind) RG_GB__GB_BR(src_, dst_A, dst_B); \
+        break; \
+    case 1: \
+        GB_BR_RG_GB__BR_RG_GB_BR(src_, dst_A, dst_B); \
+        /* 进一步处理不足4个像素的情况, 不考虑奇数点的情况 */ \
+        if (w_div12_div4_remind) BR_RG__RG_GB(src_, dst_A, dst_B); \
+        break; \
+    } \
+} while(0)
+
+#define PROCESS_EINK_ROW2() do { \
+    for (int i = 0; i < w_div12; i++) { \
+        RG_GB_BR_RG__GB_BR_RG_GB(src_, dst_A, dst_B); \
+        GB_BR_RG_GB__BR_RG_GB_BR(src_, dst_A, dst_B); \
+        BR_RG_GB_BR__RG_GB_BR_RG(src_, dst_A, dst_B); \
+    } \
+    /* 处理不足12个像素的情况 */ \
+    switch (w_div12_div4) { \
+    case 2: \
+        RG_GB_BR_RG__GB_BR_RG_GB(src_, dst_A, dst_B); \
+        GB_BR_RG_GB__BR_RG_GB_BR(src_, dst_A, dst_B); \
+        /* 进一步处理不足4个像素的情况, 不考虑奇数点的情况 */ \
+        if (w_div12_div4_remind) BR_RG__RG_GB(src_, dst_A, dst_B); \
+        break; \
+    case 1: \
+        RG_GB_BR_RG__GB_BR_RG_GB(src_, dst_A, dst_B); \
+        /* 进一步处理不足4个像素的情况, 不考虑奇数点的情况 */ \
+        if (w_div12_div4_remind) GB_BR__BR_RG(src_, dst_A, dst_B); \
+        break; \
+    } \
+} while(0)
+
+// RGB888，内存排列为[31:0] A:B:G:R 8:8:8:8
+void Rgb888_to_color_eink2(char *dst, int *src, int fb_height, int fb_width, int vir_width)
+{
+    int w_div12 = fb_width / 12;
+    int w_div12_remind = fb_width % 12;
+    int w_div12_div4 = w_div12_remind / 4;
+    int w_div12_div4_remind = w_div12_remind % 4;
+
+    char value[PROPERTY_VALUE_MAX];
+    property_get("debug.eink.rgb", value, "0");
+    int eink_rgb = atoi(value);
+    if (eink_rgb > 0) {
+        int* new_src = (int*)malloc(fb_height*fb_width*sizeof(*src));
+        memset((void*)new_src, 0, fb_height*fb_width*sizeof(*src));
+        rgb888_rgb444 pixel;
+        switch (eink_rgb) {
+        case 1: pixel.r = 0xf; break;
+        case 2: pixel.g = 0xf; break;
+        case 3: pixel.b = 0xf; break;
+        }
+        for (int row=0; row<fb_height; row++) {
+            for (int col=0; col<fb_width; col++) {
+                new_src[row*fb_width+col] = pixel.value;
+            }
+        }
+        src = new_src;
+    }
+
+    for (int row = 0; row<fb_height; row++) {
+        struct rgb888_2pixel* src_ = (struct rgb888_2pixel*)(src + row*fb_width);
+        uint8_t* dst_A = (uint8_t*)(dst + row*vir_width);
+        uint8_t* dst_B = (uint8_t*)(dst + row*vir_width + fb_width);
+        int row_mod3 = row%3;
+
+        if (row_mod3 == 0) {
+            // row 0: B:R R:G G:B B:R ... R:G G:B B:R R:G ...
+            PROCESS_EINK_ROW0();
+        } else if (row_mod3 == 1) {
+            // row 1: G:B B:R R:G G:B ... B:R R:G G:B B:R ...
+            PROCESS_EINK_ROW1();
+        } else if (row_mod3 == 2) {
+            // row 2: R:G G:B B:R R:G ... G:B B:R R:G G:B ...
+            PROCESS_EINK_ROW2();
+        }
+    }
+
+    if (eink_rgb > 0) {
+        free(src);
+    }
+}
+
+// RGB565，内存排列为[15:0] R:G:B 5:6:5
+void Rgb565_to_color_eink2(char *dst, int16_t *src, int fb_height, int fb_width, int vir_width)
+{
+    int w_div12 = fb_width / 12;
+    int w_div12_remind = fb_width % 12;
+    int w_div12_div4 = w_div12_remind / 4;
+    int w_div12_div4_remind = w_div12_remind % 4;
+
+    char value[PROPERTY_VALUE_MAX];
+    property_get("debug.eink.rgb", value, "0");
+    int eink_rgb = atoi(value);
+    if (eink_rgb > 0) {
+        int16_t* new_src = (int16_t*)malloc(fb_height*fb_width*sizeof(*src));
+        memset((void*)new_src, 0, fb_height*fb_width*sizeof(*src));
+        rgb565_rgb444 pixel;
+        switch (eink_rgb) {
+        case 1: pixel.r = 0xf; break;
+        case 2: pixel.g = 0xf; break;
+        case 3: pixel.b = 0xf; break;
+        }
+        for (int row=0; row<fb_height; row++) {
+            for (int col=0; col<fb_width; col++) {
+                new_src[row*fb_width+col] = pixel.value;
+            }
+        }
+        src = new_src;
+    }
+
+    for (int row = 0; row<fb_height; row++) {
+        struct rgb565_2pixel* src_ = (struct rgb565_2pixel*)(src + row*fb_width);
+        uint8_t* dst_A = (uint8_t*)(dst + row*vir_width);
+        uint8_t* dst_B = (uint8_t*)(dst + row*vir_width + fb_width);
+        int row_mod3 = row%3;
+
+        if (row_mod3 == 0) {
+            // row 0: B:R R:G G:B B:R ... R:G G:B B:R R:G ...
+            PROCESS_EINK_ROW0();
+        } else if (row_mod3 == 1) {
+            // row 1: G:B B:R R:G G:B ... B:R R:G G:B B:R ...
+            PROCESS_EINK_ROW1();
+        } else if (row_mod3 == 2) {
+            // row 2: R:G G:B B:R R:G ... G:B B:R R:G G:B ...
+            PROCESS_EINK_ROW2();
+        }
+    }
+
+    if (eink_rgb > 0) {
+        free(src);
+    }
+}
+#else
+//算法1，原始算法
+/*for weifeng color panel, rgb888, Algorithm 1*/
 void Rgb888_to_color_eink2(char *dst,int *src,int  fb_height, int fb_width, int vir_width)
 {
     int count;
@@ -1076,81 +1336,14 @@ void Rgb888_to_color_eink2(char *dst,int *src,int  fb_height, int fb_width, int 
     int i,j;
     int *temp_src;
     char *temp_dst,*temp1_dst,*temp2_dst;
-#if 0
-    for(i = 0; i < fb_height;i++){//RGB888->RGB444
-		temp_dst = dst;
-
-        for(j = 0; j<fb_width/2;j++){
-            src_data = *src++;
-            g0 =  (src_data&0xf0)>>4;
-            g1 = (src_data&0xf000)>>8;
-            g2 = (src_data&0xf00000)>>20;
-            src_data = *src++;
-            g3 =  src_data&0xf0;
-            g4 = (src_data&0xf000)>>12;
-            g5 = (src_data&0xf00000)>>16;
-            *dst++ = g0|g1;
-            *dst++ = g2|g3;
-            *dst++ = g4|g5;
-        }
-	  dst = temp_dst + vir_width/2;
-    }
-#endif
-
-  char value[PROPERTY_VALUE_MAX];
-  property_get("debug.eink.rgb", value, "0");
-  int new_value = 0;
-  new_value = atoi(value);
-  int width_tmp = fb_width /3;
-  int width_lost = fb_width % 3;
+    int width_tmp = fb_width /3;
+    int width_lost = fb_width % 3;
 
   for(i = 0; i < fb_height;i++){//RGB888->RGB444
       temp_dst = dst;
       temp1_dst = dst;
       temp2_dst = dst + fb_width;
       for(j = 0; j < width_tmp;){
-          if(new_value == 1){
-
-              src_data = *src++;
-              r1 = 0xf0;
-              g1 = 0x0;
-              b1 = 0x0;
-              src_data = *src++;
-              r2 = 0xf0;
-              g2 = 0x0;
-              b2 = 0x0;
-              src_data = *src++;
-              r3 = 0xf0;
-              g3 = 0x0;
-              b3 = 0x0;
-
-          }else if(new_value == 2){
-              src_data = *src++;
-              r1 = 0x0;
-              g1 = 0xf000;
-              b1 = 0x0;
-              src_data = *src++;
-              r2 = 0x0;
-              g2 = 0xf000;
-              b2 = 0x0;
-              src_data = *src++;
-              r3 = 0x0;
-              g3 = 0xf000;
-              b3 = 0x0;
-          }else if(new_value == 3){
-              src_data = *src++;
-              r1 = 0x0;
-              g1 = 0x0;
-              b1 = 0xf00000;
-              src_data = *src++;
-              r2 = 0x0;
-              g2 = 0x0;
-              b2 = 0xf00000;
-              src_data = *src++;
-              r3 = 0x0;
-              g3 = 0x0;
-              b3 = 0xf00000;
-          }else{
               src_data = *src++;
               b1 = src_data&0xf00000;
               g1 = src_data&0xf000;
@@ -1163,55 +1356,55 @@ void Rgb888_to_color_eink2(char *dst,int *src,int  fb_height, int fb_width, int 
               b3 = src_data&0xf00000;
               g3 = src_data&0xf000;
               r3 = src_data&0xf0;
-          }
+
           if(i % 3 == 0){
               dst = temp1_dst;
-              *dst++ = ((r1 >> 4) | (b1 >> 16));
-              *dst++ = ((g2 >> 12)  | (r2 >> 0));
-              *dst++ = ((b3 >> 20)  | (g3 >> 8));
+              *dst++ = ((r1 >> 4) | (b1 >> 16));  // B1:R1=4:4
+              *dst++ = ((g2 >> 12)  | (r2 >> 0)); // R2:G2=4:4
+              *dst++ = ((b3 >> 20)  | (g3 >> 8)); // G3:B3=4:4
               temp1_dst = dst;
 
               dst = temp2_dst;
-              *dst++ = ((g1 >> 12) | (r1 >> 0));
+              *dst++ = ((g1 >> 12) | (r1 >> 0)); //
               *dst++ = ((b2 >> 20) | (g2 >> 8));
               *dst++ = ((r3 >> 4)  | (b3 >> 16));
               temp2_dst = dst;
 
-		j++;
-		if ((width_lost == 1) && (j >= width_tmp)) {
-			src_data = *src++;
-			b1 = src_data&0xf00000;
-			g1 = src_data&0xf000;
-			r1 = src_data&0xf0;
+        j++;
+        if ((width_lost == 1) && (j >= width_tmp)) {
+            src_data = *src++;
+            b1 = src_data&0xf00000;
+            g1 = src_data&0xf000;
+            r1 = src_data&0xf0;
 
-			dst = temp1_dst;
-			*dst++ = ((r1 >> 4) | (b1 >> 16));
-			temp1_dst = dst;
+            dst = temp1_dst;
+            *dst++ = ((r1 >> 4) | (b1 >> 16));
+            temp1_dst = dst;
 
-			dst = temp2_dst;
-			*dst++ = ((g1 >> 12) | (r1 >> 0));
-			temp2_dst = dst;
-		}
-		else if ((width_lost == 2) && (j >= width_tmp)) {
-			src_data = *src++;
-			b1 = src_data&0xf00000;
-			g1 = src_data&0xf000;
-			r1 = src_data&0xf0;
-			src_data = *src++;
-			b2 = src_data&0xf00000;
-			g2 = src_data&0xf000;
-			r2 = src_data&0xf0;
+            dst = temp2_dst;
+            *dst++ = ((g1 >> 12) | (r1 >> 0));
+            temp2_dst = dst;
+        }
+        else if ((width_lost == 2) && (j >= width_tmp)) {
+            src_data = *src++;
+            b1 = src_data&0xf00000;
+            g1 = src_data&0xf000;
+            r1 = src_data&0xf0;
+            src_data = *src++;
+            b2 = src_data&0xf00000;
+            g2 = src_data&0xf000;
+            r2 = src_data&0xf0;
 
-			dst = temp1_dst;
-			*dst++ = ((r1 >> 4) | (b1 >> 16));
-			*dst++ = ((g2 >> 12)  | (r2 >> 0));
-			temp1_dst = dst;
+            dst = temp1_dst;
+            *dst++ = ((r1 >> 4) | (b1 >> 16));
+            *dst++ = ((g2 >> 12)  | (r2 >> 0));
+            temp1_dst = dst;
 
-			dst = temp2_dst;
-			*dst++ = ((g1 >> 12) | (r1 >> 0));
-			*dst++ = ((b2 >> 20) | (g2 >> 8));
-			temp2_dst = dst;
-		}
+            dst = temp2_dst;
+            *dst++ = ((g1 >> 12) | (r1 >> 0));
+            *dst++ = ((b2 >> 20) | (g2 >> 8));
+            temp2_dst = dst;
+        }
 
           }else if(i % 3 == 1){
               dst = temp1_dst;
@@ -1226,41 +1419,41 @@ void Rgb888_to_color_eink2(char *dst,int *src,int  fb_height, int fb_width, int 
               *dst++ = ((b3 >> 20)  | (g3 >> 8));
               temp2_dst = dst;
 
-		j++;
-		if ((width_lost == 1) && (j >= width_tmp)) {
-			src_data = *src++;
-			b1 = src_data&0xf00000;
-			g1 = src_data&0xf000;
-			r1 = src_data&0xf0;
+        j++;
+        if ((width_lost == 1) && (j >= width_tmp)) {
+            src_data = *src++;
+            b1 = src_data&0xf00000;
+            g1 = src_data&0xf000;
+            r1 = src_data&0xf0;
 
-			dst = temp1_dst;
-			*dst++ = ((b1 >> 20) | (g1 >> 8));
-			temp1_dst = dst;
+            dst = temp1_dst;
+            *dst++ = ((b1 >> 20) | (g1 >> 8));
+            temp1_dst = dst;
 
-			dst = temp2_dst;
-			*dst++ = ((r1 >> 4) | (b1 >> 16));
-			temp2_dst = dst;
-		}
-		else if ((width_lost == 2) && (j >= width_tmp)) {
-			src_data = *src++;
-			b1 = src_data&0xf00000;
-			g1 = src_data&0xf000;
-			r1 = src_data&0xf0;
-			src_data = *src++;
-			b2 = src_data&0xf00000;
-			g2 = src_data&0xf000;
-			r2 = src_data&0xf0;
+            dst = temp2_dst;
+            *dst++ = ((r1 >> 4) | (b1 >> 16));
+            temp2_dst = dst;
+        }
+        else if ((width_lost == 2) && (j >= width_tmp)) {
+            src_data = *src++;
+            b1 = src_data&0xf00000;
+            g1 = src_data&0xf000;
+            r1 = src_data&0xf0;
+            src_data = *src++;
+            b2 = src_data&0xf00000;
+            g2 = src_data&0xf000;
+            r2 = src_data&0xf0;
 
-			dst = temp1_dst;
-			*dst++ = ((b1 >> 20) | (g1 >> 8));
-			*dst++ = ((r2 >> 4) | (b2 >> 16));
-			temp1_dst = dst;
+            dst = temp1_dst;
+            *dst++ = ((b1 >> 20) | (g1 >> 8));
+            *dst++ = ((r2 >> 4) | (b2 >> 16));
+            temp1_dst = dst;
 
-			dst = temp2_dst;
-			*dst++ = ((r1 >> 4) | (b1 >> 16));
-			*dst++ = ((g2 >> 12)  | (r2 >> 0));
-			temp2_dst = dst;
-		}
+            dst = temp2_dst;
+            *dst++ = ((r1 >> 4) | (b1 >> 16));
+            *dst++ = ((g2 >> 12)  | (r2 >> 0));
+            temp2_dst = dst;
+        }
           }else if(i % 3 == 2){
               dst = temp1_dst;
               *dst++ = ((g1 >> 12) | (r1 >> 0));
@@ -1274,42 +1467,511 @@ void Rgb888_to_color_eink2(char *dst,int *src,int  fb_height, int fb_width, int 
               *dst++ = ((g3 >> 12)  | (r3 >> 0));
               temp2_dst = dst;
 
-		j++;
-		if ((width_lost == 1) && (j >= width_tmp)) {
-			src_data = *src++;
-			b1 = src_data&0xf00000;
-			g1 = src_data&0xf000;
-			r1 = src_data&0xf0;
+        j++;
+        if ((width_lost == 1) && (j >= width_tmp)) {
+            src_data = *src++;
+            b1 = src_data&0xf00000;
+            g1 = src_data&0xf000;
+            r1 = src_data&0xf0;
 
-			dst = temp1_dst;
-			*dst++ = ((g1 >> 12) | (r1 >> 0));
-			temp1_dst = dst;
+            dst = temp1_dst;
+            *dst++ = ((g1 >> 12) | (r1 >> 0));
+            temp1_dst = dst;
 
-			dst = temp2_dst;
-			*dst++ = ((b1 >> 20) | (g1 >> 8));
-			temp2_dst = dst;
+            dst = temp2_dst;
+            *dst++ = ((b1 >> 20) | (g1 >> 8));
+            temp2_dst = dst;
+        }
+        else if ((width_lost == 2) && (j >= width_tmp)) {
+            src_data = *src++;
+            b1 = src_data&0xf00000;
+            g1 = src_data&0xf000;
+            r1 = src_data&0xf0;
+            src_data = *src++;
+            b2 = src_data&0xf00000;
+            g2 = src_data&0xf000;
+            r2 = src_data&0xf0;
+
+            dst = temp1_dst;
+            *dst++ = ((g1 >> 12) | (r1 >> 0));
+            *dst++ = ((b2 >> 20) | (g2 >> 8));
+            temp1_dst = dst;
+
+            dst = temp2_dst;
+            *dst++ = ((b1 >> 20) | (g1 >> 8));
+            *dst++ = ((r2 >> 4)  | (b2 >> 16));
+            temp2_dst = dst;
+        }
+    }
+      }
+  dst = temp_dst + vir_width;
+  }
+}
+#endif
+#else
+#if 0
+//算法2
+//彩色分辨率等于原始的黑白分辨率
+//原始算法
+//for weifeng color panel, rgb888, Algorithm 2
+void Rgb888_to_color_eink2(char *dst, int *src, int  fb_height, int fb_width, int vir_width)
+{
+	int src_data;
+	int r1, b1, g1, r2, b2, g2, r3, b3, g3, r4, g4, b4;
+	int i,j;
+	char *temp_dst,*temp1_dst;
+	int *temp_src, *temp1_src;
+
+	for (i = 0; i < fb_height / 2; i++) {
+		temp_dst = dst;
+		temp1_dst = dst + (vir_width / 2);
+		temp_src = src;
+		temp1_src = src + vir_width;
+		for (j = 0; j < vir_width /6; j++) {
+			if (i % 3 == 0) {
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((r1 + r2 + r3 + r4) >> 2) | (((b1 + b2 + b3 + b4) >> 2) << 4);
+				*temp1_dst++ = ((g1 + g2 + g3 + g4) >> 2) | (((r1 + r2 + r3 + r4) >> 2) << 4);
+
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((g1 + g2 + g3 + g4) >> 2) | (((r1 + r2 + r3 + r4) >> 2) << 4);
+				*temp1_dst++ = ((b1 + b2 + b3 + b4) >> 2) | (((g1 + g2 + g3 + g4) >> 2) << 4);
+
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((b1 + b2 + b3 + b4) >> 2) | (((g1 + g2 + g3 + g4) >> 2) << 4);
+				*temp1_dst++ = ((r1 + r2 + r3 + r4) >> 2) | (((b1 + b2 + b3 + b4) >> 2) << 4);
+			}
+			else if (i % 3 == 1) {
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((b1 + b2 + b3 + b4) >> 2) | (((g1 + g2 + g3 + g4) >> 2) << 4);
+				*temp1_dst++ = ((r1 + r2 + r3 + r4) >> 2) | (((b1 + b2 + b3 + b4) >> 2) << 4);
+
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((r1 + r2 + r3 + r4) >> 2) | (((b1 + b2 + b3 + b4) >> 2) << 4);
+				*temp1_dst++ = ((g1 + g2 + g3 + g4) >> 2) | (((r1 + r2 + r3 + r4) >> 2) << 4);
+
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((g1 + g2 + g3 + g4) >> 2) | (((r1 + r2 + r3 + r4) >> 2) << 4);
+				*temp1_dst++ = ((b1 + b2 + b3 + b4) >> 2) | (((g1 + g2 + g3 + g4) >> 2) << 4);
+			}
+			else if (i % 3 == 2) {
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((g1 + g2 + g3 + g4) >> 2) | (((r1 + r2 + r3 + r4) >> 2) << 4);
+				*temp1_dst++ = ((b1 + b2 + b3 + b4) >> 2) | (((g1 + g2 + g3 + g4) >> 2) << 4);
+
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((b1 + b2 + b3 + b4) >> 2) | (((g1 + g2 + g3 + g4) >> 2) << 4);
+				*temp1_dst++ = ((r1 + r2 + r3 + r4) >> 2) | (((b1 + b2 + b3 + b4) >> 2) << 4);
+
+				src_data = *temp_src++;
+				b1 = (src_data & 0xf00000) >> 20;
+				g1 = (src_data & 0xf000) >> 12;
+				r1 = (src_data & 0xf0) >> 4;
+				src_data = *temp_src++;
+				b2 = (src_data & 0xf00000) >> 20;
+				g2 = (src_data & 0xf000) >> 12;
+				r2 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b3 = (src_data & 0xf00000) >> 20;
+				g3 = (src_data & 0xf000) >> 12;
+				r3 = (src_data & 0xf0) >> 4;
+				src_data = *temp1_src++;
+				b4 = (src_data & 0xf00000) >> 20;
+				g4 = (src_data & 0xf000) >> 12;
+				r4 = (src_data & 0xf0) >> 4;
+
+				*temp_dst++ = ((r1 + r2 + r3 + r4) >> 2) | (((b1 + b2 + b3 + b4) >> 2) << 4);
+				*temp1_dst++ = ((g1 + g2 + g3 + g4) >> 2) | (((r1 + r2 + r3 + r4) >> 2) << 4);
+			}
 		}
-		else if ((width_lost == 2) && (j >= width_tmp)) {
-			src_data = *src++;
-			b1 = src_data&0xf00000;
-			g1 = src_data&0xf000;
-			r1 = src_data&0xf0;
-			src_data = *src++;
-			b2 = src_data&0xf00000;
-			g2 = src_data&0xf000;
-			r2 = src_data&0xf0;
-
-			dst = temp1_dst;
-			*dst++ = ((g1 >> 12) | (r1 >> 0));
-			*dst++ = ((b2 >> 20) | (g2 >> 8));
-			temp1_dst = dst;
-
-			dst = temp2_dst;
-			*dst++ = ((b1 >> 20) | (g1 >> 8));
-			*dst++ = ((r2 >> 4)  | (b2 >> 16));
-			temp2_dst = dst;
-		}
+		dst += vir_width;
+		src += 2 * vir_width;
 	}
+}
+#else
+//算法2
+////彩色分辨率等于原始的黑白分辨率
+////优化算法，针对算法2，现在默认走这里
+////for weifeng color panel, rgb888, Algorithm 2
+#define RGB888_AVG_RGB(r1, r2, r, g, b)    do { \
+	uint32_t s1 = (r1[0]) & 0x00F0F0F0; \
+	uint32_t s2 = (r1[1]) & 0x00F0F0F0; \
+	uint32_t s3 = (r2[0]) & 0x00F0F0F0; \
+	uint32_t s4 = (r2[1]) & 0x00F0F0F0; \
+	uint32_t s = (s1 + s2 + s3 + s4) >> 2; \
+	r = (s >> 4) & 0xF; \
+	g = (s >> 12) & 0xF; \
+	b = (s >> 20) & 0xF; \
+	r1 += 2; \
+	r2 += 2; \
+} while(0)
+
+void Rgb888_to_color_eink2(char *dst, int *src, int fb_height, int fb_width, int vir_width)
+{
+	int i, j;
+	char *dst_r1, *dst_r2;
+	int *src_r1, *src_r2;
+	int h_div2 = fb_height / 2;
+	int w_div6 = vir_width / 6;
+	uint8_t r, g, b;
+
+	for (i = 0; i < h_div2; i++) {
+		dst_r1 = dst;
+		dst_r2 = dst + (vir_width >> 1);
+		src_r1 = src;
+		src_r2 = src + vir_width;
+		int row_mod3 = i % 3;
+		if (row_mod3 == 1) {
+			for (j = 0; j < w_div6; j++) {
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = r | (b<<4);
+				*dst_r2++ = g | (r<<4);
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = g | (r<<4);
+				*dst_r2++ = b | (g<<4);
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = b | (g<<4);
+				*dst_r2++ = r | (b<<4);
+			}
+		} else if (row_mod3 == 2) {
+			for (j = 0; j < w_div6; j++) {
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = b | (g<<4);
+				*dst_r2++ = r | (b<<4);
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = r | (b<<4);
+				*dst_r2++ = g | (r<<4);
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = g | (r<<4);
+				*dst_r2++ = b | (g<<4);
+			}
+		} else if (row_mod3 == 0) {
+			for (j = 0; j < w_div6; j++) {
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = g | (r<<4);
+				*dst_r2++ = b | (g<<4);
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = b | (g<<4);
+				*dst_r2++ = r | (b<<4);
+				RGB888_AVG_RGB(src_r1, src_r2, r, g, b);
+				*dst_r1++ = r | (b<<4);
+				*dst_r2++ = g | (r<<4);
+			}
+		}
+		dst += vir_width;
+		src += (vir_width<<1);
+	}
+}
+#endif
+#endif
+
+// 算法1
+// 彩色分辨率是原始黑白分辨率的1/4，w = W/2; h = H/2;
+// 原始算法，使用RGB888数据，所以不会走这里
+// for weifeng color panel, rgb565, Algorithm 1
+// ARM gralloc 认为 Android 定义 HAL_PIXEL_FORMAT_RGB_565，DRM定义为DRM_FORMAT_RGB565，内存排列为[15:0] R:G:B 5:6:5
+void Rgb565_to_color_eink2(char *dst,int16_t *src,int  fb_height, int fb_width, int vir_width)
+{
+    int count;
+    int16_t src_data;
+    int16_t r1,g1,b1,r2,b2,g2,r3,g3,b3;
+    int i,j;
+    int *temp_src;
+    char *temp_dst,*temp1_dst,*temp2_dst;
+    int width_tmp = fb_width /3;
+    int width_lost = fb_width % 3;
+
+  for(i = 0; i < fb_height;i++){//RGB888->RGB444
+      temp_dst = dst;
+      temp1_dst = dst;
+      temp2_dst = dst + fb_width;
+      for(j = 0; j < width_tmp;){
+              src_data = *src++;
+              r1 = (src_data&0xf000) >> 12;
+              g1 = (src_data&0x780)   >> 7;
+              b1 = (src_data&0x1e)    >> 1;
+              src_data = *src++;
+              r2 = (src_data&0xf000) >> 12;
+              g2 = (src_data&0x780)   >> 7;
+              b2 = (src_data&0x1e)    >> 1 ;
+              src_data = *src++;
+              r3 = (src_data&0xf000) >> 12;
+              g3 = (src_data&0x780)   >> 7;
+              b3 = (src_data&0x1e)    >> 1;
+
+          if(i % 3 == 0){
+              dst = temp1_dst;
+              *dst++ = ((b1 << 4) | r1);  // B1:R1=4:4
+              *dst++ = ((r2 << 4) | g2);  // R2:G2=4:4
+              *dst++ = ((g3 << 4) | b3);  // G3:B3=4:4
+              temp1_dst = dst;
+
+              dst = temp2_dst;
+              *dst++ = ((r1 << 4) | g1);   // R1:G1=4:4
+              *dst++ = ((g2 << 4) | b2);   // G2:B2=4:4
+              *dst++ = ((b3 << 4) | r3);   // B3:R3=4:4
+              temp2_dst = dst;
+
+              j++;
+              if ((width_lost == 1) && (j >= width_tmp)) {
+                  src_data = *src++;
+                  r1 = (src_data&0xf000) >> 12;
+                  g1 = (src_data&0x780)   >> 7;
+                  b1 = (src_data&0x1e)    >> 1;
+
+                  dst = temp1_dst;
+                  *dst++ = ((b1 << 4) | r1);  // B1:R1=4:4
+                  temp1_dst = dst;
+
+                  dst = temp2_dst;
+                  *dst++ = ((r1 << 4) | g1);   // R1:G1=4:4
+                  temp2_dst = dst;
+              }else if ((width_lost == 2) && (j >= width_tmp)) {
+                  src_data = *src++;
+                  r1 = (src_data&0xf000) >> 12;
+                  g1 = (src_data&0x780)   >> 7;
+                  b1 = (src_data&0x1e)    >> 1;
+                  src_data = *src++;
+                  r2 = (src_data&0xf000) >> 12;
+                  g2 = (src_data&0x780)   >> 7;
+                  b2 = (src_data&0x1e)    >> 1 ;
+
+                  dst = temp1_dst;
+                  *dst++ = ((b1 << 4) | r1);  // B1:R1=4:4
+                  *dst++ = ((r2 << 4) | g2);  // R2:G2=4:4
+                  temp1_dst = dst;
+
+                  dst = temp2_dst;
+                  *dst++ = ((r1 << 4) | g1);   // R1:G1=4:4
+                  *dst++ = ((g2 << 4) | b2);   // G2:B2=4:4
+
+                  temp2_dst = dst;
+              }
+
+          }else if(i % 3 == 1){
+              dst = temp1_dst;
+              *dst++ = ((r1 << 4) | b1);  // G1:B1
+              *dst++ = ((b2 << 4) | r2);  // B2:R2
+              *dst++ = ((b3 << 4) | g3);  // R3:G3
+              temp1_dst = dst;
+
+              dst = temp2_dst;
+              *dst++ = ((b1 << 4) | r1);  // B1:R1
+              *dst++ = ((r2 << 4) | g2); // R2:G2
+              *dst++ = ((g3 << 4) | b3); // G3:B3
+              temp2_dst = dst;
+
+              j++;
+              if ((width_lost == 1) && (j >= width_tmp)) {
+                  src_data = *src++;
+                  r1 = (src_data&0xf000) >> 12;
+                  g1 = (src_data&0x780)   >> 7;
+                  b1 = (src_data&0x1e)    >> 1;
+
+                  dst = temp1_dst;
+                  *dst++ = ((r1 << 4) | b1);  // G1:B1
+                  temp1_dst = dst;
+
+                  dst = temp2_dst;
+                  *dst++ = ((b1 << 4) | r1);  // B1:R1
+                  temp2_dst = dst;
+              }else if ((width_lost == 2) && (j >= width_tmp)) {
+                  src_data = *src++;
+                  r1 = (src_data&0xf000) >> 12;
+                  g1 = (src_data&0x780)   >> 7;
+                  b1 = (src_data&0x1e)    >> 1;
+                  src_data = *src++;
+                  r2 = (src_data&0xf000) >> 12;
+                  g2 = (src_data&0x780)   >> 7;
+                  b2 = (src_data&0x1e)    >> 1 ;
+
+                  dst = temp1_dst;
+                  *dst++ = ((r1 << 4) | b1);  // G1:B1
+                  *dst++ = ((b2 << 4) | r2);  // B2:R2
+                  temp1_dst = dst;
+
+                  dst = temp2_dst;
+                  *dst++ = ((b1 << 4) | r1);  // B1:R1
+                  *dst++ = ((r2 << 4) | g2); // R2:G2
+
+                  temp2_dst = dst;
+              }
+          }else if(i % 3 == 2){
+              dst = temp1_dst;
+              *dst++ = ((r1 << 4) | g1);  // R1:G1
+              *dst++ = ((g2 << 4) | b2);  // G2:B2
+              *dst++ = ((b3 << 4) | r3); // B3:R3
+              temp1_dst = dst;
+
+              dst = temp2_dst;
+              *dst++ = ((g1 << 4) | b1); // G1:B1
+              *dst++ = ((b2 << 4) | r2); // B2:R2
+              *dst++ = ((r3 << 4) | g3); // R3:G3
+              temp2_dst = dst;
+
+              j++;
+              if ((width_lost == 1) && (j >= width_tmp)) {
+                  src_data = *src++;
+                  r1 = (src_data&0xf000) >> 12;
+                  g1 = (src_data&0x780)   >> 7;
+                  b1 = (src_data&0x1e)    >> 1;
+
+                  dst = temp1_dst;
+                  *dst++ = ((r1 << 4) | g1);  // R1:G1
+                  temp1_dst = dst;
+
+                  dst = temp2_dst;
+                  *dst++ = ((g1 << 4) | b1); // G1:B1
+                  temp2_dst = dst;
+              }else if ((width_lost == 2) && (j >= width_tmp)) {
+                  src_data = *src++;
+                  r1 = (src_data&0xf000) >> 12;
+                  g1 = (src_data&0x780)   >> 7;
+                  b1 = (src_data&0x1e)    >> 1;
+                  src_data = *src++;
+                  r2 = (src_data&0xf000) >> 12;
+                  g2 = (src_data&0x780)   >> 7;
+                  b2 = (src_data&0x1e)    >> 1 ;
+
+                  dst = temp1_dst;
+                  *dst++ = ((r1 << 4) | g1);  // R1:G1
+                  *dst++ = ((g2 << 4) | b2);  // G2:B2
+                  temp1_dst = dst;
+
+                  dst = temp2_dst;
+                  *dst++ = ((g1 << 4) | b1); // G1:B1
+                  *dst++ = ((b2 << 4) | r2); // B2:R2
+                  temp2_dst = dst;
+              }
+          }
       }
   dst = temp_dst + vir_width;
   }
@@ -1386,13 +2048,13 @@ void rgb888_to_gray2_dither(uint8_t *dst, uint8_t *src, int panel_h, int panel_w
 
 static inline void apply_white_region(char *buffer, int height, int width, Region region)
 {
-	int left,right;
+    int left,right;
     if (region.isEmpty()) return;
     size_t count = 0;
     const Rect* rects = region.getArray(&count);
     for (int i = 0;i < (int)count;i++) {
-	 left = rects[i].left;
-	 right = rects[i].right;
+     left = rects[i].left;
+     right = rects[i].right;
         int w = right - left;
         int offset = rects[i].top * width + left;
         for (int h = rects[i].top;h <= rects[i].bottom && h < height;h++) {
@@ -1408,6 +2070,7 @@ int hwc_post_epd(int *buffer, Rect rect, int mode){
 
   struct ebc_buf_info_t buf_info;
 
+  snprintf(buf_info.tid_name, 16, "hwc_logo");
   if(ioctl(ebc_fd, EBC_GET_BUFFER,&buf_info)!=0)
   {
      ALOGE("EBC_GET_BUFFER failed\n");
@@ -1419,6 +2082,7 @@ int hwc_post_epd(int *buffer, Rect rect, int mode){
   buf_info.win_y1 = rect.top;
   buf_info.win_y2 = rect.bottom;
   buf_info.epd_mode = mode;
+  buf_info.needpic = 16;
 
 
   char value[PROPERTY_VALUE_MAX];
@@ -1482,7 +2146,7 @@ bool decode_image_file(const char* filename, SkBitmap* bitmap,
                                SkColorType colorType = kN32_SkColorType,
                                bool requireUnpremul = false) {
     sk_sp<SkData> data(SkData::MakeFromFileName(filename));
-	  std::unique_ptr<SkCodec> codec(SkCodec::MakeFromData(std::move(data)));
+      std::unique_ptr<SkCodec> codec(SkCodec::MakeFromData(std::move(data)));
     if (!codec) {
         return false;
     }
@@ -1520,10 +2184,10 @@ void drawLogoPic(const char src_path[], void* buf, int width, int height)
     canvas.drawColor(SK_ColorWHITE);
 
     if (width > bitmap.width())
-		x = (width - bitmap.width()) / 2;
+        x = (width - bitmap.width()) / 2;
 
     if (height > bitmap.height())
-		y = (height - bitmap.height()) / 2;
+        y = (height - bitmap.height()) / 2;
 
     canvas.drawBitmap(bitmap, x, y, NULL);
 }
@@ -1554,12 +2218,12 @@ int Rgb888ToGray16ByRga(char *dst_buf,int *src_buf,int  fb_height, int fb_width,
     src.rotation = 0;
     dst.dither.enable = 0;
     dst.dither.mode = 0;
+    dst.color_space_mode = 0x1 << 2;
 
-    dst.dither.lut0_l = 0x0000;
+    dst.dither.lut0_l = 0x3210;
     dst.dither.lut0_h = 0x7654;
     dst.dither.lut1_l = 0xba98;
-    dst.dither.lut1_h = 0xffcc;
-
+    dst.dither.lut1_h = 0xfedc;
     ret = rkRga.RkRgaBlit(&src, &dst, NULL);
     if(ret) {
         ALOGE("rgaRotateScale error : src[x=%d,y=%d,w=%d,h=%d,ws=%d,hs=%d,format=0x%x],dst[x=%d,y=%d,w=%d,h=%d,ws=%d,hs=%d,format=0x%x]",
@@ -1577,14 +2241,15 @@ int hwc_post_epd_logo(const char src_path[]) {
 
     if (ebc_buf_info.panel_color == 1) {
         image_new_addr = (char *)malloc(ebc_buf_info.width * ebc_buf_info.height * 4);
-        image_addr = (char *)malloc(ebc_buf_info.width * ebc_buf_info.height * 4);
+        image_addr = (char *)malloc(ebc_buf_info.width * ebc_buf_info.height);
         drawLogoPic(src_path, (void *)image_new_addr, ebc_buf_info.width, ebc_buf_info.height);
-	 free(image_new_addr);
-	 image_new_addr = NULL;
+        image_to_cfa_grayscale_gen2_ARGBB8888(ebc_buf_info.width, ebc_buf_info.height, (unsigned char *)image_new_addr, (unsigned char *)image_addr);
+        free(image_new_addr);
+        image_new_addr = NULL;
     }
     else if (ebc_buf_info.panel_color == 2) {
-        image_addr = (char *)malloc((ebc_buf_info.width/2) * (ebc_buf_info.height/2) * 4);
-        drawLogoPic(src_path, (void *)image_addr, ebc_buf_info.width/2, ebc_buf_info.height/2);
+        image_addr = (char *)malloc(ebc_buf_info.width * ebc_buf_info.height * 4);
+        drawLogoPic(src_path, (void *)image_addr, ebc_buf_info.width, ebc_buf_info.height);
     }
     else {
         image_addr = (char *)malloc(ebc_buf_info.width * ebc_buf_info.height * 4);
@@ -1601,11 +2266,13 @@ int hwc_post_epd_logo(const char src_path[]) {
         ALOGD_IF(log_level(DBG_DEBUG), "%s,line = %d", __FUNCTION__, __LINE__);
         //EPD post
         Rect rect(0, 0, ebc_buf_info.width, ebc_buf_info.height);
-        hwc_post_epd(gray16_buffer_bak, rect, EPD_DU);
+        hwc_post_epd(gray16_buffer_bak, rect, EPD_PART_GC16);
     }
 
-    if (ebc_buf_info.panel_color == 2)
-        Rgb888_to_color_eink2((char *)gray16_buffer, (int *)image_addr, ebc_buf_info.height/2, ebc_buf_info.width/2, ebc_buf_info.width);
+    if (ebc_buf_info.panel_color == 1)
+        logo_gray256_to_gray16((char *)image_addr, (char *)gray16_buffer, ebc_buf_info.height, ebc_buf_info.width, ebc_buf_info.width);
+    else if (ebc_buf_info.panel_color == 2)
+        Rgb888_to_color_eink2((char *)gray16_buffer, (int *)image_addr, ebc_buf_info.height, ebc_buf_info.width, ebc_buf_info.width);
     else
         Rgb888ToGray16ByRga((char *)gray16_buffer, (int *)image_addr, ebc_buf_info.height, ebc_buf_info.width, ebc_buf_info.width);
 
@@ -1626,8 +2293,21 @@ int hwc_post_epd_logo(const char src_path[]) {
 
     return 0;
 }
+
 static int hwc_adajust_sf_vsync(int mode){
   static int last_mode = EPD_NULL;
+  static int resume_count = 5;
+
+  if ((last_mode == EPD_SUSPEND) && (mode != EPD_RESUME))
+    return 0;
+
+  if ((last_mode == EPD_RESUME) && (mode == EPD_SUSPEND))
+    resume_count = 0;
+
+  if ((last_mode == EPD_RESUME) && (resume_count > 0)) {
+    resume_count--;
+    return 0;
+  }
 
   if(mode == last_mode)
     return 0;
@@ -1637,10 +2317,19 @@ static int hwc_adajust_sf_vsync(int mode){
     case EPD_AUTO:
     case EPD_OVERLAY:
     case EPD_A2:
+    case EPD_A2_DITHER:
       strcpy(refresh_skip_count, "5");
       break;
     case EPD_DU:
+    case EPD_DU4:
       strcpy(refresh_skip_count, "5");
+      break;
+    case EPD_RESUME:
+      resume_count = 5;
+      strcpy(refresh_skip_count, "29");
+      break;
+    case EPD_SUSPEND:
+      strcpy(refresh_skip_count, "29");
       break;
     default:
       strcpy(refresh_skip_count, "2");
@@ -1673,7 +2362,7 @@ static int hwc_handle_eink_mode(int mode){
       int one_full_mode_timeline = atoi(value);
       if(gOneFullModeTime != one_full_mode_timeline){
         gOneFullModeTime = one_full_mode_timeline;
-        gCurrentEpdMode = EPD_FULL_GC16;
+        gCurrentEpdMode = EPD_FORCE_FULL;
       }else{
         gCurrentEpdMode = mode;
       }
@@ -1694,8 +2383,6 @@ static int hwc_set(hwc_composer_device_1_t *dev, size_t num_displays,
   property_get("sys.eink.mode", value, "0");
   int requestEpdMode = atoi(value);
 
-  property_get("sys.eink.one_full_mode_timeline", value, "0");
-  int one_full_mode_timeline = atoi(value);
   //Handle eink mode.
   ret = hwc_handle_eink_mode(requestEpdMode);
 
@@ -1799,7 +2486,7 @@ static int hwc_set_power_mode(struct hwc_composer_device_1 *dev, int display,
       gPowerMode = EPD_SUSPEND;
       gCurrentEpdMode = EPD_SUSPEND;
       ALOGD("%s,line = %d , mode = %d , gPowerMode = %d,gCurrentEpdMode = %d",__FUNCTION__,__LINE__,mode,gPowerMode,gCurrentEpdMode);
-      
+      hwc_adajust_sf_vsync(EPD_SUSPEND);
       char power_status[255];
       char power_connected[255];
       property_get("sys.power.status",power_status, "0");
@@ -1836,10 +2523,11 @@ static int hwc_set_power_mode(struct hwc_composer_device_1 *dev, int display,
      break;
     case HWC_POWER_MODE_DOZE_SUSPEND:
     case HWC_POWER_MODE_NORMAL:
-      ALOGD("%s,line = %d , mode = %d , gPowerMode = %d,gCurrentEpdMode = %d",__FUNCTION__,__LINE__,mode,gPowerMode,gCurrentEpdMode);
       gPowerMode = EPD_RESUME;
       gCurrentEpdMode = EPD_FULL_GC16;
       not_fullmode_count = 50;
+      ALOGD("%s,line = %d , mode = %d , gPowerMode = %d,gCurrentEpdMode = %d",__FUNCTION__,__LINE__,mode,gPowerMode,gCurrentEpdMode);
+      hwc_adajust_sf_vsync(EPD_RESUME);
       break;
   }
   return 0;
@@ -1883,14 +2571,8 @@ static int hwc_get_display_configs(struct hwc_composer_device_1 *dev,
     return 0;
 
   uint32_t width = 0, height = 0 , vrefresh = 0 ;
-  if (ebc_buf_info.panel_color == 2) {
-    width = ebc_buf_info.width/2;// - ((ebc_buf_info.width/2) % 8);
-    height = ebc_buf_info.height/2;// - ((ebc_buf_info.height/2) % 2);
-  }
-  else {
-    width = ebc_buf_info.width - (ebc_buf_info.width % 8);
-    height = ebc_buf_info.height - (ebc_buf_info.height % 2);
-  }
+  width = ebc_buf_info.width - (ebc_buf_info.width % 8);
+  height = ebc_buf_info.height - (ebc_buf_info.height % 2);
   hwc_info.framebuffer_width = width;
   hwc_info.framebuffer_height = height;
   hwc_info.vrefresh = vrefresh ? vrefresh : 60;
@@ -2065,14 +2747,19 @@ static int hwc_device_open(const struct hw_module_t *module, const char *name,
   ebc_fd = open("/dev/ebc", O_RDWR,0);
   if (ebc_fd < 0){
       ALOGE("open /dev/ebc failed\n");
+      return -1;
   }
 
   if(ioctl(ebc_fd, EBC_GET_BUFFER_INFO,&ebc_buf_info)!=0){
       ALOGE("EBC_GET_BUFFER_INFO failed\n");
+      close(ebc_fd);
+      return -1;
   }
   ebc_buffer_base = mmap(0, EINK_FB_SIZE*4, PROT_READ|PROT_WRITE, MAP_SHARED, ebc_fd, 0);
   if (ebc_buffer_base == MAP_FAILED) {
       ALOGE("Error mapping the ebc buffer (%s)\n", strerror(errno));
+      close(ebc_fd);
+      return -1;
   }
 
   hwc_init_version();
